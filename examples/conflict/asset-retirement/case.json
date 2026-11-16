@@ -1,0 +1,30 @@
+{
+  "schema": "atlas-conflict-case/v1",
+  "id": "asset-retirement",
+  "title": "素材退役后恢复历史创作意图",
+  "question": "A 的图层引用了已被运营退役的素材；B 在冲突整合时能否把画面恢复成 A 所见的像素？",
+  "derivation": "本案例依赖脚本生成的 2x2 PNG，没有静态文档快照；运行 python3 scripts/conflict_demo.py --scenario asset-retirement 获取完整证据。",
+  "steps": [
+    "创建场景 asset-demo，包含引用 ribbon 的 image 图层；冻结并渲染，确认基线像素。",
+    "退役 ribbon：POST /v1/assets/ribbon/retire 返回 200。",
+    "尝试用同一文档在退役后保存：PUT /v1/scenes/asset-demo 返回 409，错误为 scene references unavailable asset。",
+    "尝试在退役后冻结：POST /v1/scenes/asset-demo/snapshots 返回 409，错误为 snapshot references unavailable asset。",
+    "尝试用同 ID 重新上传同一字节：PUT /v1/assets/ribbon 返回 409，错误为 asset id already exists。",
+    "尝试恢复素材：POST /v1/assets/ribbon/revive 返回 404，说明没有该入口。",
+    "把同一字节以新 ID ribbon2 上传成功；把图层 assetId 改为 ribbon2 后保存成功。",
+    "冻结并渲染改指后的文档，与退役前快照比较：changedPixels = 0。",
+    "删除该图层后保存并渲染，与改指结果比较：changedPixels > 0。",
+    "导出退役前快照的交换包并尝试导入同一服务：POST /v1/imports/asset-fork 返回 409，错误为 destination asset conflicts with package。"
+  ],
+  "expect": {
+    "pinnedRenderAfterRetirement": "succeeded",
+    "saveAfterRetirementStatus": 409,
+    "freezeAfterRetirementStatus": 409,
+    "sameIdReimportStatus": 409,
+    "reviveEndpointStatus": 404,
+    "repointKeepsPixels": true,
+    "deleteLayerChangesPixels": true,
+    "importIntoSourceServiceStatus": 409
+  },
+  "reading": "改指到同字节的新 ID 保留了当前画面，但素材谱系和快照摘要都改变；删除图层改变了画面。两者都是新的创作决定，必须由作者确认，且不能称为“撤销退役”。"
+}

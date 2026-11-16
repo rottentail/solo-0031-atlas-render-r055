@@ -27,6 +27,16 @@ python3 scripts/walkthrough.py --workflow compare-renders
 
 脚本在临时状态目录启动实际服务，通过 HTTP 完成操作后停止服务，输出任务状态和 PNG 摘要；`--out` 保存可查看的合成示例。恢复流程会强制结束脚本自己启动的服务进程，再验证恢复结果。所有工作流编号见 `.project-manifest.json`。
 
+## 并行编辑冲突
+
+场景保存是整份文档加 `expectedRevision` 前置条件。修订不匹配返回 409，但服务不判断文档内容差异，也不提供局部合并、修订历史或素材恢复。两位作者从同一修订出发时的推荐处理流程、三类结构性改动（图层重排、祖先变换、素材退役）的画面影响、归档恢复的语义边界，见 `docs/conflict-resolution.md`。
+
+```sh
+python3 scripts/conflict_demo.py --scenario all --out var/conflict
+```
+
+该脚本对真实服务复现四组交错编辑，只使用现行接口，人工整合在脚本内完成；案例文档位于 `examples/conflict/`。
+
 ## 场景到结果
 
 1. `PUT /v1/scenes/emblem`，提交名称、`expectedRevision: 0` 和 `document`。示例见 `examples/emblem.json`。
@@ -44,4 +54,4 @@ python3 scripts/walkthrough.py --workflow compare-renders
 
 持久化使用完整 JSON 状态的原子替换，保留全部任务与快照，事件只保留最近 500 条。适合中小规模、单写实例工作负载。清理结果只释放 PNG 字节，仍保留任务事实和摘要。进程重启可恢复任务；突然断电的文件系统耐久性不作额外保证。
 
-测试处于 deferred 阶段，基线未包含自动化测试套件或 `test_command`。生产工作流检查、构建与静态检查已单独提供。接口和持久状态的规则详见 `PROJECT_SPEC.md`、`docs/api.md`、`docs/operations.md`。
+测试处于 deferred 阶段，基线未包含自动化测试套件或 `test_command`。生产工作流检查、构建与静态检查已单独提供。接口和持久状态的规则详见 `PROJECT_SPEC.md`、`docs/api.md`、`docs/operations.md`；协作编辑规范见 `docs/conflict-resolution.md`。

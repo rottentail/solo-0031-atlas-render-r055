@@ -1,0 +1,30 @@
+{
+  "schema": "atlas-conflict-case/v1",
+  "id": "archive-restore",
+  "title": "归档后恢复被误当成撤销他人修改",
+  "question": "场景从 archived 恢复为 active 时，是否会把内容回滚到归档前？",
+  "derivation": "状态与修订是运行期事实；运行 python3 scripts/conflict_demo.py --scenario archive-restore 获取完整证据。",
+  "steps": [
+    "创建 archive-demo，A 把 background 改为 #103040 后保存并冻结快照。",
+    "B 以 A 的修订归档：POST /v1/scenes/archive-demo/state，state=archived，返回 200，修订加一。",
+    "归档期间尝试保存文档返回 409（scene is archived），尝试冻结返回 409（scene revision or state changed）。",
+    "恢复：POST /v1/scenes/archive-demo/state，state=active，返回 200；文档摘要与归档前一致，修订继续递增而不是回到归档前值。",
+    "对已经是 active 的场景再次提交 state=active 返回 200，修订不变；因此“恢复”本身是幂等的状态对齐，不是内容还原。",
+    "B 用归档前的旧检出（background 为 #F5F1E8）以恢复后的当前修订保存，返回 200；画面被静默改回旧背景。",
+    "A 导出归档前快照的交换包；导入必须使用新场景 ID，成功创建独立分叉，规范场景修订不受影响。",
+    "用规范场景 ID 作为导入目标返回 409（destination scene already exists）。"
+  ],
+  "expect": {
+    "archiveStatus": 200,
+    "saveWhileArchivedStatus": 409,
+    "freezeWhileArchivedStatus": 409,
+    "restoreStatus": 200,
+    "restoreKeepsDocument": true,
+    "restoreDoesNotResetRevision": true,
+    "repeatedRestoreBumpsRevision": false,
+    "staleCheckoutReplaySilentlyReverts": true,
+    "packageImportCreatesSeparateScene": true,
+    "packageImportOntoCanonicalSceneStatus": 409
+  },
+  "reading": "归档/恢复只切换状态并递增修订，从不保存或还原内容。恢复后仍须重新读取当前文档并三方整合；“我恢复后就该看到归档前的样子”以及“用旧检出回放”都会覆盖他人修改。"
+}

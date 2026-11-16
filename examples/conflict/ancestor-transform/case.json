@@ -1,0 +1,135 @@
+{
+  "schema": "atlas-conflict-case/v1",
+  "id": "ancestor-transform",
+  "title": "祖先组已旋转时合并后代的位移意图",
+  "question": "B 想要“把方块向右移动 40 像素”，在 A 已把父组旋转 90 度后，哪种整合保留了这一意图？",
+  "base": {
+    "name": "祖先变换冲突",
+    "document": {
+      "width": 220,
+      "height": 220,
+      "background": "#F5F1E8",
+      "layers": [
+        {
+          "id": "frame",
+          "kind": "group",
+          "transform": { "x": 60, "y": 60, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 1,
+          "children": [
+            {
+              "id": "tile",
+              "kind": "rectangle",
+              "width": 40,
+              "height": 20,
+              "transform": { "x": 0, "y": 0, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+              "opacity": 1,
+              "fill": { "kind": "solid", "color": "#145A70" }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "authors": {
+    "a": {
+      "intent": "把 frame 组绕自身原点顺时针旋转 90 度。",
+      "document": {
+        "width": 220,
+        "height": 220,
+        "background": "#F5F1E8",
+        "layers": [
+          {
+            "id": "frame",
+            "kind": "group",
+            "transform": { "x": 60, "y": 60, "scaleX": 1, "scaleY": 1, "degrees": 90 },
+            "opacity": 1,
+            "children": [
+              {
+                "id": "tile",
+                "kind": "rectangle",
+                "width": 40,
+                "height": 20,
+                "transform": { "x": 0, "y": 0, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+                "opacity": 1,
+                "fill": { "kind": "solid", "color": "#145A70" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "b": {
+      "intent": "在世界坐标中把 tile 向右移动 40 像素；在基础文档中写作局部 x=40。",
+      "document": {
+        "width": 220,
+        "height": 220,
+        "background": "#F5F1E8",
+        "layers": [
+          {
+            "id": "frame",
+            "kind": "group",
+            "transform": { "x": 60, "y": 60, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 1,
+            "children": [
+              {
+                "id": "tile",
+                "kind": "rectangle",
+                "width": 40,
+                "height": 20,
+                "transform": { "x": 40, "y": 0, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+                "opacity": 1,
+                "fill": { "kind": "solid", "color": "#145A70" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "integration": {
+    "method": "manual-whole-document",
+    "document": {
+      "width": 220,
+      "height": 220,
+      "background": "#F5F1E8",
+      "layers": [
+        {
+          "id": "frame",
+          "kind": "group",
+          "transform": { "x": 60, "y": 60, "scaleX": 1, "scaleY": 1, "degrees": 90 },
+          "opacity": 1,
+          "children": [
+            {
+              "id": "tile",
+              "kind": "rectangle",
+              "width": 40,
+              "height": 20,
+              "transform": { "x": 0, "y": -40, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+              "opacity": 1,
+              "fill": { "kind": "solid", "color": "#145A70" }
+            }
+          ]
+        }
+      ]
+    },
+    "steps": [
+      "A 旋转 frame 后保存并冻结。",
+      "B 以基础修订保存，收到 409。",
+      "B 记录自己的意图是世界坐标右移 40，而非局部字段 x=40。",
+      "B 重新 GET 场景，保留 frame.degrees=90，把该世界位移反解到旋转后的局部坐标：y=-40。",
+      "B 保存整合文档并冻结，与 A、逐字段合并和整份重放的结果分别做像素比较。"
+    ]
+  },
+  "expect": {
+    "staleSaveStatus": 409,
+    "worldBounds": {
+      "base": { "anchor": [60, 60], "x": [60, 100], "y": [60, 80] },
+      "aRotated": { "anchor": [60, 60], "x": [40, 60], "y": [60, 100] },
+      "bWorldRight": { "anchor": [100, 60], "x": [100, 140], "y": [60, 80] },
+      "forceReplay": { "anchor": [100, 60], "x": [100, 140], "y": [60, 80] },
+      "naiveFieldMerge": { "anchor": [60, 100], "x": [40, 60], "y": [100, 140] },
+      "intentPreserving": { "anchor": [100, 60], "x": [80, 100], "y": [60, 100] }
+    },
+    "note": "三者都通过修订检查。forceReplay 满足 B 的世界位移但丢弃了 A 的旋转；naiveFieldMerge 保留 A 的旋转却把“右移”变成“下移”，锚点从 (100,60) 变成 (60,100)；intentPreserving 的锚点与 B 的世界意图一致，同时保留 A 的旋转，因此方块本身随祖先转向，需要作者确认这一最终取舍。"
+  }
+}

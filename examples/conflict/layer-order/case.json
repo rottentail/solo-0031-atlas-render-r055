@@ -1,0 +1,154 @@
+{
+  "schema": "atlas-conflict-case/v1",
+  "id": "layer-order",
+  "title": "两位作者从同一修订插入图层与改色",
+  "question": "先保存者插入的图层，在后来者保存时是否会被整份文档抹掉？",
+  "base": {
+    "name": "层序冲突",
+    "document": {
+      "width": 160,
+      "height": 120,
+      "background": "#F5F1E8",
+      "layers": [
+        {
+          "id": "under",
+          "kind": "rectangle",
+          "width": 100,
+          "height": 100,
+          "transform": { "x": 10, "y": 10, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 1,
+          "fill": { "kind": "solid", "color": "#145A70" }
+        },
+        {
+          "id": "over",
+          "kind": "rectangle",
+          "width": 100,
+          "height": 100,
+          "transform": { "x": 50, "y": 40, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 1,
+          "fill": { "kind": "solid", "color": "#E87E4F" }
+        }
+      ]
+    }
+  },
+  "authors": {
+    "a": {
+      "intent": "在 under 与 over 之间插入一个半透明光晕，作为新的中间层；同时把场景名改为“层序冲突 v2”。",
+      "name": "层序冲突 v2",
+      "document": {
+        "width": 160,
+        "height": 120,
+        "background": "#F5F1E8",
+        "layers": [
+          {
+            "id": "under",
+            "kind": "rectangle",
+            "width": 100,
+            "height": 100,
+            "transform": { "x": 10, "y": 10, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 1,
+            "fill": { "kind": "solid", "color": "#145A70" }
+          },
+          {
+            "id": "halo",
+            "kind": "ellipse",
+            "width": 80,
+            "height": 80,
+            "transform": { "x": 40, "y": 20, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 0.85,
+            "fill": { "kind": "solid", "color": "#FFF4D5" }
+          },
+          {
+            "id": "over",
+            "kind": "rectangle",
+            "width": 100,
+            "height": 100,
+            "transform": { "x": 50, "y": 40, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 1,
+            "fill": { "kind": "solid", "color": "#E87E4F" }
+          }
+        ]
+      }
+    },
+    "b": {
+      "intent": "只把 over 的颜色从 #E87E4F 改为 #7A3FA0，不触碰层序。",
+      "document": {
+        "width": 160,
+        "height": 120,
+        "background": "#F5F1E8",
+        "layers": [
+          {
+            "id": "under",
+            "kind": "rectangle",
+            "width": 100,
+            "height": 100,
+            "transform": { "x": 10, "y": 10, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 1,
+            "fill": { "kind": "solid", "color": "#145A70" }
+          },
+          {
+            "id": "over",
+            "kind": "rectangle",
+            "width": 100,
+            "height": 100,
+            "transform": { "x": 50, "y": 40, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+            "opacity": 1,
+            "fill": { "kind": "solid", "color": "#7A3FA0" }
+          }
+        ]
+      }
+    }
+  },
+  "integration": {
+    "method": "manual-whole-document",
+    "document": {
+      "width": 160,
+      "height": 120,
+      "background": "#F5F1E8",
+      "layers": [
+        {
+          "id": "under",
+          "kind": "rectangle",
+          "width": 100,
+          "height": 100,
+          "transform": { "x": 10, "y": 10, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 1,
+          "fill": { "kind": "solid", "color": "#145A70" }
+        },
+        {
+          "id": "halo",
+          "kind": "ellipse",
+          "width": 80,
+          "height": 80,
+          "transform": { "x": 40, "y": 20, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 0.85,
+          "fill": { "kind": "solid", "color": "#FFF4D5" }
+        },
+        {
+          "id": "over",
+          "kind": "rectangle",
+          "width": 100,
+          "height": 100,
+          "transform": { "x": 50, "y": 40, "scaleX": 1, "scaleY": 1, "degrees": 0 },
+          "opacity": 1,
+          "fill": { "kind": "solid", "color": "#7A3FA0" }
+        }
+      ]
+    },
+    "steps": [
+      "A 以基础修订保存整份文档（含新场景名）并冻结快照。",
+      "B 以同一基础修订提交，收到 409；即使 B 的文档与已接受基础逐字节相同，也仍是 409。",
+      "B 重新 GET 当前场景，保留 halo 和 A 的场景名，仅把 over 的 fill.color 改为 #7A3FA0。",
+      "B 以当前修订保存整份整合文档，再冻结快照并与 A 的快照做像素比较。"
+    ]
+  },
+  "expect": {
+    "staleSaveStatus": 409,
+    "identicalDocumentAlsoRejected": true,
+    "forceReplayLayerIds": ["under", "over"],
+    "forceReplayRevertsSceneName": true,
+    "integratedLayerIds": ["under", "halo", "over"],
+    "integratedOverColor": "#7A3FA0",
+    "pixelsDifferBetweenReplayAndIntegration": true
+  }
+}
